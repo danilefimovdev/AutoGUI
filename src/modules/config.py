@@ -12,8 +12,7 @@ STOP_PLAYING_HOTKEYS = [
 
 SWITCH_WINDOW_HOTKEYS = [
     "alt+tab",
-    "cmd+tab",
-    "ctrl+tab"
+    "cmd+tab"
 ]
 
 ROOT_DIR = os.getcwd()[:-8]
