@@ -1,8 +1,7 @@
-import json
 from typing import NoReturn
 
-from src.modules.defaullts import LANGUAGES, ROOT_DIR
-from src.modules.utils import get_keyboard_language, activate_window
+from defaullts import LANGUAGES
+from utils import get_keyboard_language, activate_window
 
 
 # ------ special playing functions ------ #
@@ -24,13 +23,5 @@ def switch_window(config: dict) -> NoReturn:
     except Exception as ex:
         raise ex
 
-
-# ------ special playing functions ------ #
-
-
-def write_window_switch() -> NoReturn:
-
-    with open(f'{ROOT_DIR}/involved_in_recording/switch_window_hotkey.json', 'w') as file:
-        json.dump(dict(is_pressed=True), file)
 
 

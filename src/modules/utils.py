@@ -10,8 +10,7 @@ import win32con
 import win32gui
 from win32api import GetKeyboardLayout, GetKeyState
 
-from src.modules.defaullts import ROOT_DIR
-from src.modules.special_actions import write_window_switch
+from defaullts import ROOT_DIR
 
 
 def get_vk(key) -> int:
@@ -117,7 +116,6 @@ def get_keyboard_language() -> int:
 def stop_process() -> NoReturn:
     """Catch expected hotkey and terminate started process"""
 
-    print(f'Stop listening')
     os.kill(os.getpid(), signal.SIGTERM)
 
 
@@ -137,11 +135,11 @@ def ask_user_for_a_record_name() -> NoReturn:
 def _clean_temporary_files() -> NoReturn:
     """ clean temporary files using in recording """
 
-    with open(f'{ROOT_DIR}/records/input_file.json', 'w'):
+    with open(f'{ROOT_DIR}\\records/input_file.json', 'w'):
         pass
-    with open(f'{ROOT_DIR}/used_in_recording_&_playing/active_window_name.json', 'w') as file:
+    with open(f'{ROOT_DIR}\\used_in_recording_&_playing\\active_window_name.json', 'w') as file:
         json.dump(dict(title=get_active_window_title()), file)
-    with open(f'{ROOT_DIR}/used_in_recording_&_playing/switch_window_hotkey.json', 'w') as file:
+    with open(f'{ROOT_DIR}\\used_in_recording_&_playing\\switch_window_hotkey.json', 'w') as file:
         json.dump(dict(is_pressed=False), file)
 
 
@@ -175,9 +173,9 @@ def _write_start_window(START_TIMER: float) -> NoReturn:
     """ write active window at the start of the recording """
 
     make_acting_record(
-        controller='window',
+        controller="special",
         timestamp=get_timestamp(START_TIMER),
-        action="switch",
+        action="activate_window",
         config=dict(title=get_active_window_title())
     )
 
@@ -191,14 +189,26 @@ def do_preparation_actions(START_TIMER: float) -> NoReturn:
     _write_start_window(START_TIMER)
 
 
-def set_hotkeys():
+def set_hotkeys(window_switch: bool = False, stop_recording: bool = False, stop_playing: bool = False):
     with open(f'{ROOT_DIR}/used_in_recording_&_playing/config.json', mode='r') as file:
         config = json.load(file)
-        stop_hotkeys = config["STOP_RECORDING_HOTKEYS"]
-        switch_hotkeys = config["SWITCH_WINDOW_HOTKEYS"]
 
-        for hotkey in stop_hotkeys:  # set terminate recording hotkeys
-            keyboard.add_hotkey(hotkey, stop_process)
+        if window_switch:
+            switch_hotkeys = config["SWITCH_WINDOW_HOTKEYS"]
+            for hotkey in switch_hotkeys:  # set window switched flag hotkeys
+                keyboard.add_hotkey(hotkey, write_window_switch)
+        if stop_recording:
+            stop_hotkeys = config["STOP_RECORDING_HOTKEYS"]
+            for hotkey in stop_hotkeys:  # set window switched flag hotkeys
+                keyboard.add_hotkey(hotkey, stop_process)
 
-        for hotkey in switch_hotkeys:   # set window switched flag hotkeys
-            keyboard.add_hotkey(hotkey, write_window_switch)
+        if stop_playing:
+            stop_hotkeys = config["STOP_PLAYING_HOTKEYS"]
+            for hotkey in stop_hotkeys:  # set window switched flag hotkeys
+                keyboard.add_hotkey(hotkey, stop_process)
+
+
+def write_window_switch() -> NoReturn:
+
+    with open(f'{ROOT_DIR}/used_in_recording_&_playing/switch_window_hotkey.json', 'w') as file:
+        json.dump(dict(is_pressed=True), file)
