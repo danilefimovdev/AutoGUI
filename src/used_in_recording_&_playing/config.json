@@ -1,0 +1,15 @@
+{
+  "STOP_RECORDING_HOTKEYS": [
+    "ctrl+shift+/",
+    "ctrl+shift+."
+  ],
+  "STOP_PLAYING_HOTKEYS": [
+    "ctrl+shift+/",
+    "ctrl+shift+."
+  ],
+  "SWITCH_WINDOW_HOTKEYS": [
+    "alt+tab",
+    "cmd+tab"
+  ],
+  "TIMESTAMP_CHECK_PAUSE": 0.01
+}

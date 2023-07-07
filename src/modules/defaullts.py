@@ -1,4 +1,10 @@
+import os
+
 from pynput.mouse import Button
+
+# TODO: implement functions to set STOP recording and STOP playing HOTKEYS (if requires)
+
+ROOT_DIR = os.getcwd()[:-8]
 
 MOUSE_BUTTONS = {
     'Button.left': Button.left,

@@ -4,12 +4,14 @@ import signal
 from time import time
 from typing import NoReturn
 
+import keyboard
 import pygetwindow
 import win32con
 import win32gui
 from win32api import GetKeyboardLayout, GetKeyState
 
-from config import ROOT_DIR
+from src.modules.defaullts import ROOT_DIR
+from src.modules.special_actions import write_window_switch
 
 
 def get_vk(key) -> int:
@@ -34,9 +36,10 @@ def get_active_window_title() -> str:
         raise ex
 
 
-def activate_window(title: str) -> NoReturn:
+def activate_window(config: dict) -> NoReturn:
     """ activate window with passed window title if exists """
 
+    title = config["title"]
     hwnd = win32gui.FindWindow(None, title)
     if hwnd:
         win32gui.ShowWindow(hwnd, win32con.SHOW_FULLSCREEN)
@@ -49,9 +52,9 @@ def make_window_switching_record(active_window_title: str, START_TIMER: float) -
     """ check has the active window changed and make a record of window switching to json """
 
     make_acting_record(
-        controller='window',
+        controller='special',
         timestamp=get_timestamp(START_TIMER),
-        action="switch",
+        action="activate_window",
         config=dict(
             title=active_window_title
         )
@@ -76,25 +79,26 @@ def check_is_window_changed(active_window_title: str, START_TIMER: float) -> NoR
     """ check was active window changed and make an action record if It was """
 
     # get last window name from active_window_name.json file
-    with open(f'{ROOT_DIR}/involved_in_recording/active_window_name.json', 'r') as file:
+    with open(f'{ROOT_DIR}/used_in_recording_&_playing/active_window_name.json', 'r') as file:
         last_window_title = json.load(file)['title']
 
     # check is current name different from last_window_title and not equal ("Task Switching", "", "None")
-    if active_window_title != last_window_title and active_window_title not in ("Task Switching", "", "None"):
+    if active_window_title not in ("Task Switching", "", "None"):
 
         # change last window name
-        with open(f'{ROOT_DIR}/involved_in_recording/active_window_name.json', 'w') as file:
+        with open(f'{ROOT_DIR}/used_in_recording_&_playing/active_window_name.json', 'w') as file:
             json.dump(dict(title=active_window_title), file)
 
-        # check was one of window switch hotkey pressed
-        with open(f'{ROOT_DIR}/involved_in_recording/switch_window_hotkey.json', 'r') as file:
-            is_pressed = json.load(file)['is_pressed']
-            if is_pressed:
-                # make switch window record
-                make_window_switching_record(active_window_title, START_TIMER)
+        if active_window_title != last_window_title:
+            # check was one of window switch hotkey pressed
+            with open(f'{ROOT_DIR}/used_in_recording_&_playing/switch_window_hotkey.json', 'r') as file:
+                is_pressed = json.load(file)['is_pressed']
+                if is_pressed:
+                    # make switch window record
+                    make_window_switching_record(active_window_title, START_TIMER)
 
         # change window switch hotkey pressed to false
-        with open(f'{ROOT_DIR}/involved_in_recording/switch_window_hotkey.json', 'w') as file:
+        with open(f'{ROOT_DIR}/used_in_recording_&_playing/switch_window_hotkey.json', 'w') as file:
             json.dump(dict(is_pressed=False), file)
 
 
@@ -110,14 +114,34 @@ def get_keyboard_language() -> int:
     return language_id
 
 
+def stop_process() -> NoReturn:
+    """Catch expected hotkey and terminate started process"""
+
+    print(f'Stop listening')
+    os.kill(os.getpid(), signal.SIGTERM)
+
+
+def ask_user_for_a_record_name() -> NoReturn:
+
+    file_name = None
+    while not file_name:
+        entered_data = input('Enter json file name with .json: ')
+        if os.path.exists(f"{ROOT_DIR}/records/{entered_data.replace(' ', '')}"):
+            file_name = entered_data
+        else:
+            print(f'0 records with "{entered_data}" name were found')
+            print(f'Please enter valid file name')
+    return file_name
+
+
 def _clean_temporary_files() -> NoReturn:
     """ clean temporary files using in recording """
 
     with open(f'{ROOT_DIR}/records/input_file.json', 'w'):
         pass
-    with open(f'{ROOT_DIR}/involved_in_recording/active_window_name.json', 'w') as file:
+    with open(f'{ROOT_DIR}/used_in_recording_&_playing/active_window_name.json', 'w') as file:
         json.dump(dict(title=get_active_window_title()), file)
-    with open(f'{ROOT_DIR}/involved_in_recording/switch_window_hotkey.json', 'w') as file:
+    with open(f'{ROOT_DIR}/used_in_recording_&_playing/switch_window_hotkey.json', 'w') as file:
         json.dump(dict(is_pressed=False), file)
 
 
@@ -125,14 +149,14 @@ def _write_capslock_state(START_TIMER: float) -> NoReturn:
     """ write was capslock toggled at the start of the recording """
 
     caps_lock_vk = 20
-    is_caps_lock_toggled = GetKeyState(caps_lock_vk)
+    is_capslock_toggled = GetKeyState(caps_lock_vk)
 
     # check if caps lock was toggled at the beginning and make a record of it if It was
     make_acting_record(
-        controller='special',
+        controller="keyboard",
         timestamp=get_timestamp(START_TIMER),
-        action="toggle_caps_lock",
-        config=dict(subject="capslock", is_toggled=is_caps_lock_toggled)
+        action="toggle_capslock",
+        config=dict(is_toggled=is_capslock_toggled)
     )
 
 
@@ -167,8 +191,14 @@ def do_preparation_actions(START_TIMER: float) -> NoReturn:
     _write_start_window(START_TIMER)
 
 
-def stop_process() -> NoReturn:
-    """Catch expected hotkey and terminate started process"""
+def set_hotkeys():
+    with open(f'{ROOT_DIR}/used_in_recording_&_playing/config.json', mode='r') as file:
+        config = json.load(file)
+        stop_hotkeys = config["STOP_RECORDING_HOTKEYS"]
+        switch_hotkeys = config["SWITCH_WINDOW_HOTKEYS"]
 
-    print(f'Stop listening')
-    os.kill(os.getpid(), signal.SIGTERM)
+        for hotkey in stop_hotkeys:  # set terminate recording hotkeys
+            keyboard.add_hotkey(hotkey, stop_process)
+
+        for hotkey in switch_hotkeys:   # set window switched flag hotkeys
+            keyboard.add_hotkey(hotkey, write_window_switch)
