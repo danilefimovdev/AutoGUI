@@ -24,7 +24,7 @@ START_TIMER = time()
 
 def on_press(key) -> NoReturn:
     """catch keyboard's key pressing and write in the log file"""
-
+    print("on_press")
     # check has the window changed from last action and make record if True
     active_window_title = get_active_window_title()
     check_is_window_changed(active_window_title, START_TIMER)
@@ -40,7 +40,7 @@ def on_press(key) -> NoReturn:
 
 def on_release(key) -> NoReturn:
     """catch keyboard's key releasing and write in the log file"""
-
+    print("on_release")
     # check has the window changed from last action and make record if True
     active_window_title = get_active_window_title()
     check_is_window_changed(active_window_title, START_TIMER)
@@ -61,11 +61,7 @@ def on_release(key) -> NoReturn:
 # TODO: writing every move would generate huge weight json files
 def on_move(x, y):
     """catch mouse movement and write in the log file"""
-
-    # check has the window changed from last action and make record if True
-    active_window_title = get_active_window_title()
-    check_is_window_changed(active_window_title, START_TIMER)
-
+    print("on_move")
     # make record of action
     make_acting_record(
         controller="mouse",
@@ -78,12 +74,8 @@ def on_move(x, y):
 def on_click(x, y, button: Button, pressed) -> NoReturn:
     """catch mouse clicking and write in the log file"""
 
-    # check has the window changed from last action and make record if True
-    active_window_title = get_active_window_title()
-    check_is_window_changed(active_window_title, START_TIMER)
-
     action = "press" if pressed else "release"
-
+    print(f"on_click_{action}")
     # make record of action
 
     make_acting_record(
@@ -96,11 +88,7 @@ def on_click(x, y, button: Button, pressed) -> NoReturn:
 
 def on_scroll(x: int, y: int, dx: int, dy: int) -> NoReturn:
     """catch mouse scrolling and write in the log file"""
-
-    # check has the window changed from last action and make record if True
-    active_window_title = get_active_window_title()
-    check_is_window_changed(active_window_title, START_TIMER)
-
+    print("on_scroll")
     # make record of action
     make_acting_record(
         controller="mouse",
@@ -108,6 +96,7 @@ def on_scroll(x: int, y: int, dx: int, dy: int) -> NoReturn:
         action="scroll",
         config=dict(x=x, y=y, dx=dx, dy=dy)
     )
+
 
 # ------ start listening functions ------ #
 
@@ -129,7 +118,7 @@ def start_mouse_listener():
     with mouse.Listener(
             on_move=on_move,
             on_click=on_click,
-            on_scroll=on_scroll
+            on_scroll=on_scroll,
     ) as listener:
         listener.join()
 
@@ -143,8 +132,9 @@ def main():
     # str representation of start listening for record name
     current_datetime = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     print('Start recording')
-    do_preparation_actions(START_TIMER)
+
     try:
+        do_preparation_actions(START_TIMER)
 
         # create processes for listening both mouse and keyboard
         mouse_list_proc = Process(target=start_mouse_listener)
@@ -159,7 +149,6 @@ def main():
 
         # when one listener has been terminated we do not need to listen others anymore
         mouse_list_proc.terminate()
-        print(f'Stop listening')
 
     except Exception as ex:
         print(ex)
@@ -178,4 +167,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

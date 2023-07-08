@@ -1,8 +1,9 @@
+import ctypes
 import json
 import os
 import signal
 from time import time
-from typing import NoReturn
+from typing import NoReturn, Optional
 
 import keyboard
 import pygetwindow
@@ -25,14 +26,17 @@ def get_timestamp(start_timer: float) -> float:
     return round(time()-start_timer, ndigits=2)
 
 
-def get_active_window_title() -> str:
+def get_active_window_title() -> Optional[str]:
     """ get active window title  """
 
     try:
-        window_title = pygetwindow.getActiveWindowTitle()
-        return window_title
+        # window_title = pygetwindow.getActiveWindowTitle()
+        # return window_title
+        HWND = ctypes.windll.user32.GetForegroundWindow()
+        title = win32gui.GetWindowText(HWND)
+        return title
     except Exception as ex:
-        raise ex
+        return None
 
 
 def activate_window(config: dict) -> NoReturn:
@@ -82,7 +86,7 @@ def check_is_window_changed(active_window_title: str, START_TIMER: float) -> NoR
         last_window_title = json.load(file)['title']
 
     # check is current name different from last_window_title and not equal ("Task Switching", "", "None")
-    if active_window_title not in ("Task Switching", "", "None"):
+    if active_window_title not in ("Task Switching", "", "None", "Task View") and active_window_title is not None:
 
         # change last window name
         with open(f'{ROOT_DIR}/used_in_recording_&_playing/active_window_name.json', 'w') as file:
@@ -96,9 +100,9 @@ def check_is_window_changed(active_window_title: str, START_TIMER: float) -> NoR
                     # make switch window record
                     make_window_switching_record(active_window_title, START_TIMER)
 
-        # change window switch hotkey pressed to false
-        with open(f'{ROOT_DIR}/used_in_recording_&_playing/switch_window_hotkey.json', 'w') as file:
-            json.dump(dict(is_pressed=False), file)
+            # change window switch hotkey pressed to false
+            with open(f'{ROOT_DIR}/used_in_recording_&_playing/switch_window_hotkey.json', 'w') as file:
+                json.dump(dict(is_pressed=False), file)
 
 
 def get_keyboard_language() -> int:
@@ -117,9 +121,10 @@ def stop_process() -> NoReturn:
     """Catch expected hotkey and terminate started process"""
 
     os.kill(os.getpid(), signal.SIGTERM)
+    print(f'Stop listening')
 
 
-def ask_user_for_a_record_name() -> NoReturn:
+def ask_user_for_a_record_name() -> str:
 
     file_name = None
     while not file_name:
@@ -135,11 +140,11 @@ def ask_user_for_a_record_name() -> NoReturn:
 def _clean_temporary_files() -> NoReturn:
     """ clean temporary files using in recording """
 
-    with open(f'{ROOT_DIR}\\records/input_file.json', 'w'):
+    with open(f'{ROOT_DIR}/records/input_file.json', 'w'):
         pass
-    with open(f'{ROOT_DIR}\\used_in_recording_&_playing\\active_window_name.json', 'w') as file:
+    with open(f'{ROOT_DIR}/used_in_recording_&_playing/active_window_name.json', 'w') as file:
         json.dump(dict(title=get_active_window_title()), file)
-    with open(f'{ROOT_DIR}\\used_in_recording_&_playing\\switch_window_hotkey.json', 'w') as file:
+    with open(f'{ROOT_DIR}/used_in_recording_&_playing/switch_window_hotkey.json', 'w') as file:
         json.dump(dict(is_pressed=False), file)
 
 
@@ -192,7 +197,6 @@ def do_preparation_actions(START_TIMER: float) -> NoReturn:
 def set_hotkeys(window_switch: bool = False, stop_recording: bool = False, stop_playing: bool = False):
     with open(f'{ROOT_DIR}/used_in_recording_&_playing/config.json', mode='r') as file:
         config = json.load(file)
-
         if window_switch:
             switch_hotkeys = config["SWITCH_WINDOW_HOTKEYS"]
             for hotkey in switch_hotkeys:  # set window switched flag hotkeys

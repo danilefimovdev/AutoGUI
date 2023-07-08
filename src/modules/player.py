@@ -127,6 +127,7 @@ SPECIAL_ACTIONS = {
 
 # ------ main function ------ #
 
+
 # TODO: think how we can pass the length of stop recording hotkey dynamically
 # TODO: or find out how we can remove records of pressing stop record hotkey from the end
 def main():
@@ -143,6 +144,7 @@ def main():
         acts_to_ignore = hotkeys[0].count("+")
         # pause between timestamp check
         pause = config["TIMESTAMP_CHECK_PAUSE"]
+
 
     # ask user for record file name to start
     file_name = ask_user_for_a_record_name()
