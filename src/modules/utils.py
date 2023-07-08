@@ -6,7 +6,6 @@ from time import time
 from typing import NoReturn, Optional
 
 import keyboard
-import pygetwindow
 import win32con
 import win32gui
 from win32api import GetKeyboardLayout, GetKeyState
@@ -30,10 +29,8 @@ def get_active_window_title() -> Optional[str]:
     """ get active window title  """
 
     try:
-        # window_title = pygetwindow.getActiveWindowTitle()
-        # return window_title
-        HWND = ctypes.windll.user32.GetForegroundWindow()
-        title = win32gui.GetWindowText(HWND)
+        hwnd = ctypes.windll.user32.GetForegroundWindow()
+        title = win32gui.GetWindowText(hwnd)
         return title
     except Exception as ex:
         return None
@@ -81,16 +78,16 @@ def make_acting_record(controller: str, timestamp: float, action: str, config: d
 def check_is_window_changed(active_window_title: str, START_TIMER: float) -> NoReturn:
     """ check was active window changed and make an action record if It was """
 
-    # get last window name from active_window_name.json file
-    with open(f'{ROOT_DIR}/used_in_recording_&_playing/active_window_name.json', 'r') as file:
-        last_window_title = json.load(file)['title']
+    # get last window name from active_window_name.txt file
+    with open(f'{ROOT_DIR}/used_in_recording_&_playing/active_window_name.txt', 'r') as file:
+        last_window_title = file.readline()
 
     # check is current name different from last_window_title and not equal ("Task Switching", "", "None")
     if active_window_title not in ("Task Switching", "", "None", "Task View") and active_window_title is not None:
 
         # change last window name
-        with open(f'{ROOT_DIR}/used_in_recording_&_playing/active_window_name.json', 'w') as file:
-            json.dump(dict(title=active_window_title), file)
+        with open(f'{ROOT_DIR}/used_in_recording_&_playing/active_window_name.txt', 'w') as file:
+            file.write(active_window_title)
 
         if active_window_title != last_window_title:
             # check was one of window switch hotkey pressed
@@ -142,8 +139,8 @@ def _clean_temporary_files() -> NoReturn:
 
     with open(f'{ROOT_DIR}/records/input_file.json', 'w'):
         pass
-    with open(f'{ROOT_DIR}/used_in_recording_&_playing/active_window_name.json', 'w') as file:
-        json.dump(dict(title=get_active_window_title()), file)
+    with open(f'{ROOT_DIR}/used_in_recording_&_playing/active_window_name.txt', 'w') as file:
+        file.write(get_active_window_title())
     with open(f'{ROOT_DIR}/used_in_recording_&_playing/switch_window_hotkey.json', 'w') as file:
         json.dump(dict(is_pressed=False), file)
 

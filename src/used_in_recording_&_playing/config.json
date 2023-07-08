@@ -11,6 +11,6 @@
     "alt+tab",
     "cmd+tab"
   ],
-  "TIMESTAMP_CHECK_PAUSE": 0.01
+  "TIMESTAMP_CHECK_PAUSE": 0.005
 }
 

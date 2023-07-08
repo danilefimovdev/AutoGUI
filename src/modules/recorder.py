@@ -13,6 +13,9 @@ from utils import do_preparation_actions, set_hotkeys, get_active_window_title, 
 from defaullts import ROOT_DIR
 
 
+move_counter = 1
+
+
 # ------ start time counter ------ #
 
 
@@ -61,18 +64,27 @@ def on_release(key) -> NoReturn:
 # TODO: writing every move would generate huge weight json files
 def on_move(x, y):
     """catch mouse movement and write in the log file"""
+    global move_counter
+
+    active_window_title = get_active_window_title()
+    check_is_window_changed(active_window_title, START_TIMER)
     print("on_move")
     # make record of action
-    make_acting_record(
-        controller="mouse",
-        timestamp=get_timestamp(START_TIMER),
-        action="move",
-        config=dict(x=x, y=y)
-    )
+    if move_counter % 10 == 0:
+        make_acting_record(
+            controller="mouse",
+            timestamp=get_timestamp(START_TIMER),
+            action="move",
+            config=dict(x=x, y=y)
+        )
+    move_counter += 1
 
 
 def on_click(x, y, button: Button, pressed) -> NoReturn:
     """catch mouse clicking and write in the log file"""
+
+    active_window_title = get_active_window_title()
+    check_is_window_changed(active_window_title, START_TIMER)
 
     action = "press" if pressed else "release"
     print(f"on_click_{action}")
@@ -89,6 +101,8 @@ def on_click(x, y, button: Button, pressed) -> NoReturn:
 def on_scroll(x: int, y: int, dx: int, dy: int) -> NoReturn:
     """catch mouse scrolling and write in the log file"""
     print("on_scroll")
+    active_window_title = get_active_window_title()
+    check_is_window_changed(active_window_title, START_TIMER)
     # make record of action
     make_acting_record(
         controller="mouse",
@@ -140,7 +154,7 @@ def main():
         mouse_list_proc = Process(target=start_mouse_listener)
         keyboard_list_proc = Process(target=start_keyboard_listener)
 
-        # start each process
+        # start each process.
         mouse_list_proc.start()
         keyboard_list_proc.start()
 
