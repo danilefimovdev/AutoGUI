@@ -91,15 +91,15 @@ def check_is_window_changed(active_window_title: str, START_TIMER: float) -> NoR
 
         if active_window_title != last_window_title:
             # check was one of window switch hotkey pressed
-            with open(f'{ROOT_DIR}/used_in_recording_&_playing/switch_window_hotkey.json', 'r') as file:
-                is_pressed = json.load(file)['is_pressed']
+            with open(f'{ROOT_DIR}/used_in_recording_&_playing/switch_window_hotkey.txt', 'r') as file:
+                is_pressed = int(file.read())
                 if is_pressed:
                     # make switch window record
                     make_window_switching_record(active_window_title, START_TIMER)
 
             # change window switch hotkey pressed to false
-            with open(f'{ROOT_DIR}/used_in_recording_&_playing/switch_window_hotkey.json', 'w') as file:
-                json.dump(dict(is_pressed=False), file)
+            with open(f'{ROOT_DIR}/used_in_recording_&_playing/switch_window_hotkey.txt', 'w') as file:
+                file.write("0")
 
 
 def get_keyboard_language() -> int:
@@ -141,8 +141,8 @@ def _clean_temporary_files() -> NoReturn:
         pass
     with open(f'{ROOT_DIR}/used_in_recording_&_playing/active_window_name.txt', 'w') as file:
         file.write(get_active_window_title())
-    with open(f'{ROOT_DIR}/used_in_recording_&_playing/switch_window_hotkey.json', 'w') as file:
-        json.dump(dict(is_pressed=False), file)
+    with open(f'{ROOT_DIR}/used_in_recording_&_playing/switch_window_hotkey.txt', 'w') as file:
+        file.write("0")
 
 
 def _write_capslock_state(START_TIMER: float) -> NoReturn:
@@ -211,5 +211,5 @@ def set_hotkeys(window_switch: bool = False, stop_recording: bool = False, stop_
 
 def write_window_switch() -> NoReturn:
 
-    with open(f'{ROOT_DIR}/used_in_recording_&_playing/switch_window_hotkey.json', 'w') as file:
-        json.dump(dict(is_pressed=True), file)
+    with open(f'{ROOT_DIR}/used_in_recording_&_playing/switch_window_hotkey.txt', 'w') as file:
+        file.write("1")
