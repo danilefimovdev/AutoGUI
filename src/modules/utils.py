@@ -32,7 +32,7 @@ def get_active_window_title() -> Optional[str]:
         hwnd = ctypes.windll.user32.GetForegroundWindow()
         title = win32gui.GetWindowText(hwnd)
         return title
-    except Exception as ex:
+    except Exception:
         return None
 
 
@@ -82,6 +82,9 @@ def check_is_window_changed(active_window_title: str, START_TIMER: float) -> NoR
     with open(f'{ROOT_DIR}/used_in_recording_&_playing/active_window_name.txt', 'r') as file:
         last_window_title = file.readline()
 
+    with open(f'{ROOT_DIR}/used_in_recording_&_playing/switch_window_name.txt', 'r') as file:
+        switch_window_title = file.readline()
+
     # check is current name different from last_window_title and not equal ("Task Switching", "", "None")
     if active_window_title not in ("Task Switching", "", "None", "Task View") and active_window_title is not None:
 
@@ -89,17 +92,34 @@ def check_is_window_changed(active_window_title: str, START_TIMER: float) -> NoR
         with open(f'{ROOT_DIR}/used_in_recording_&_playing/active_window_name.txt', 'w') as file:
             file.write(active_window_title)
 
-        if active_window_title != last_window_title:
-            # check was one of window switch hotkey pressed
-            with open(f'{ROOT_DIR}/used_in_recording_&_playing/switch_window_hotkey.txt', 'r') as file:
+        with open(f'{ROOT_DIR}/used_in_recording_&_playing/switch_window_hotkey.txt', 'r') as file:
+            try:
                 is_pressed = int(file.read())
+            except ValueError:
+                is_pressed = None
+
+        print(f"active_window != last_window: {active_window_title != last_window_title}; is_pressed: {is_pressed}; active_window: {active_window_title}; last_window: {last_window_title};")
+        print(f"active_window == switch_window: {active_window_title == switch_window_title}; is_pressed: {is_pressed}; active_window: {active_window_title}; switch_window: {switch_window_title};")
+
+        first_condition = active_window_title != last_window_title
+        second_condition = all((active_window_title == switch_window_title, is_pressed, ))
+        if is_pressed is not None:
+            if first_condition or second_condition:
+                # check was one of window switch hotkey pressed
                 if is_pressed:
                     # make switch window record
                     make_window_switching_record(active_window_title, START_TIMER)
 
-            # change window switch hotkey pressed to false
-            with open(f'{ROOT_DIR}/used_in_recording_&_playing/switch_window_hotkey.txt', 'w') as file:
-                file.write("0")
+                    if second_condition:
+                        switch_window = ""
+                    else:  # first_condition
+                        switch_window = active_window_title
+                    with open(f'{ROOT_DIR}/used_in_recording_&_playing/switch_window_name.txt', 'w') as file:
+                        file.write(switch_window)
+
+                # change window switch hotkey pressed to false
+                with open(f'{ROOT_DIR}/used_in_recording_&_playing/switch_window_hotkey.txt', 'w') as file:
+                    file.write("0")
 
 
 def get_keyboard_language() -> int:
@@ -143,6 +163,8 @@ def _clean_temporary_files() -> NoReturn:
         file.write(get_active_window_title())
     with open(f'{ROOT_DIR}/used_in_recording_&_playing/switch_window_hotkey.txt', 'w') as file:
         file.write("0")
+    with open(f'{ROOT_DIR}/used_in_recording_&_playing/switch_window_name.txt', 'w') as file:
+        file.write("")
 
 
 def _write_capslock_state(START_TIMER: float) -> NoReturn:
@@ -202,7 +224,6 @@ def set_hotkeys(window_switch: bool = False, stop_recording: bool = False, stop_
             stop_hotkeys = config["STOP_RECORDING_HOTKEYS"]
             for hotkey in stop_hotkeys:  # set window switched flag hotkeys
                 keyboard.add_hotkey(hotkey, stop_process)
-
         if stop_playing:
             stop_hotkeys = config["STOP_PLAYING_HOTKEYS"]
             for hotkey in stop_hotkeys:  # set window switched flag hotkeys

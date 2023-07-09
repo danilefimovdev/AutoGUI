@@ -145,7 +145,6 @@ def main():
         # pause between timestamp check
         pause = config["TIMESTAMP_CHECK_PAUSE"]
 
-
     # ask user for record file name to start
     file_name = ask_user_for_a_record_name()
 

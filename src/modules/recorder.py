@@ -27,10 +27,13 @@ START_TIMER = time()
 
 def on_press(key) -> NoReturn:
     """catch keyboard's key pressing and write in the log file"""
+
     print("on_press")
+
     # check has the window changed from last action and make record if True
-    active_window_title = get_active_window_title()
-    check_is_window_changed(active_window_title, START_TIMER)
+    if get_vk(key) != 9:
+        active_window_title = get_active_window_title()
+        check_is_window_changed(active_window_title, START_TIMER)
 
     # make record of action
     make_acting_record(
@@ -43,7 +46,9 @@ def on_press(key) -> NoReturn:
 
 def on_release(key) -> NoReturn:
     """catch keyboard's key releasing and write in the log file"""
+
     print("on_release")
+
     # check has the window changed from last action and make record if True
     active_window_title = get_active_window_title()
     check_is_window_changed(active_window_title, START_TIMER)
@@ -100,6 +105,7 @@ def on_click(x, y, button: Button, pressed) -> NoReturn:
 
 def on_scroll(x: int, y: int, dx: int, dy: int) -> NoReturn:
     """catch mouse scrolling and write in the log file"""
+
     print("on_scroll")
     active_window_title = get_active_window_title()
     check_is_window_changed(active_window_title, START_TIMER)
