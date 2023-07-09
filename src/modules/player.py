@@ -1,6 +1,6 @@
 import json
 import sys
-from time import time, sleep
+from time import sleep
 from typing import NoReturn
 
 import keyboard
@@ -10,11 +10,6 @@ from win32api import GetKeyState
 
 from utils import activate_window, get_timestamp, stop_process, ask_user_for_a_record_name, get_keyboard_language
 from defaullts import ROOT_DIR, MOUSE_BUTTONS, LANGUAGES
-
-# ------ start time counter ------ #
-
-
-START_TIMER = time()
 
 
 # ------ mouse actions ------ #
@@ -158,7 +153,7 @@ def main():
                 item = json.loads(line)
 
                 # here we are waiting when action time would be equal or less than start script time
-                while item['timestamp'] > get_timestamp(START_TIMER):
+                while item['timestamp'] > get_timestamp():
                     sleep(pause)
                 error_timestamp = item['timestamp']
                 # when the time is right we start the action

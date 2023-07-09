@@ -13,16 +13,19 @@ from win32api import GetKeyboardLayout, GetKeyState
 from defaullts import ROOT_DIR
 
 
+START_TIMER = time()
+
+
 def get_vk(key) -> int:
     """ Get the virtual key code from a key. """
 
     return key.vk if hasattr(key, 'vk') else key.value.vk
 
 
-def get_timestamp(start_timer: float) -> float:
+def get_timestamp() -> float:
     """ get time value passed since start listening process for replaying actions """
 
-    return round(time()-start_timer, ndigits=2)
+    return round(time()-START_TIMER, ndigits=2)
 
 
 def get_active_window_title() -> Optional[str]:
@@ -48,12 +51,11 @@ def activate_window(config: dict) -> NoReturn:
         raise Exception(f"There is no window with '{title}' title")
 
 
-def make_window_switching_record(active_window_title: str, START_TIMER: float) -> NoReturn:
+def make_window_switching_record(active_window_title: str) -> NoReturn:
     """ check has the active window changed and make a record of window switching to json """
 
     make_acting_record(
         controller='special',
-        timestamp=get_timestamp(START_TIMER),
         action="activate_window",
         config=dict(
             title=active_window_title
@@ -61,13 +63,13 @@ def make_window_switching_record(active_window_title: str, START_TIMER: float) -
     )
 
 
-def make_acting_record(controller: str, timestamp: float, action: str, config: dict) -> NoReturn:
+def make_acting_record(controller: str, action: str, config: dict) -> NoReturn:
     """ make a record of action to json """
 
     with open(f'{ROOT_DIR}/records/input_file.json', mode='a') as file:
         data = dict(
             controller=controller,
-            timestamp=timestamp,
+            timestamp=get_timestamp(),
             action=action,
             config=config
         )
@@ -75,7 +77,7 @@ def make_acting_record(controller: str, timestamp: float, action: str, config: d
         file.write('\n')
 
 
-def check_is_window_changed(active_window_title: str, START_TIMER: float) -> NoReturn:
+def check_is_window_changed(active_window_title: str) -> NoReturn:
     """ check was active window changed and make an action record if It was """
 
     # get last window name from active_window_name.txt file
@@ -108,7 +110,7 @@ def check_is_window_changed(active_window_title: str, START_TIMER: float) -> NoR
                 # check was one of window switch hotkey pressed
                 if is_pressed:
                     # make switch window record
-                    make_window_switching_record(active_window_title, START_TIMER)
+                    make_window_switching_record(active_window_title)
 
                     if second_condition:
                         switch_window = ""
@@ -167,7 +169,7 @@ def _clean_temporary_files() -> NoReturn:
         file.write("")
 
 
-def _write_capslock_state(START_TIMER: float) -> NoReturn:
+def _write_capslock_state() -> NoReturn:
     """ write was capslock toggled at the start of the recording """
 
     caps_lock_vk = 20
@@ -176,41 +178,38 @@ def _write_capslock_state(START_TIMER: float) -> NoReturn:
     # check if caps lock was toggled at the beginning and make a record of it if It was
     make_acting_record(
         controller="keyboard",
-        timestamp=get_timestamp(START_TIMER),
         action="toggle_capslock",
         config=dict(is_toggled=is_capslock_toggled)
     )
 
 
-def _write_start_language(START_TIMER: float) -> NoReturn:
+def _write_start_language() -> NoReturn:
     """ write was capslock toggled at the start of the recording """
 
     make_acting_record(
         controller='special',
-        timestamp=get_timestamp(START_TIMER),
         action="check_language",
         config=dict(subject="language", lang_id=get_keyboard_language())
     )
 
 
-def _write_start_window(START_TIMER: float) -> NoReturn:
+def _write_start_window() -> NoReturn:
     """ write active window at the start of the recording """
 
     make_acting_record(
         controller="special",
-        timestamp=get_timestamp(START_TIMER),
         action="activate_window",
         config=dict(title=get_active_window_title())
     )
 
 
-def do_preparation_actions(START_TIMER: float) -> NoReturn:
+def do_preparation_actions() -> NoReturn:
     """ do all required actions before starting a new record """
 
     _clean_temporary_files()
-    _write_capslock_state(START_TIMER)
-    _write_start_language(START_TIMER)
-    _write_start_window(START_TIMER)
+    _write_capslock_state()
+    _write_start_language()
+    _write_start_window()
 
 
 def set_hotkeys(window_switch: bool = False, stop_recording: bool = False, stop_playing: bool = False):

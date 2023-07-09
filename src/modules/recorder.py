@@ -1,25 +1,18 @@
 import datetime
 import os
 import sys
-from time import time
 from multiprocessing import Process
 from typing import NoReturn
 
 from pynput import keyboard as keyboard_, mouse
 from pynput.mouse import Button
 
-from utils import do_preparation_actions, set_hotkeys, get_active_window_title, get_timestamp, make_acting_record, \
-    check_is_window_changed, get_vk
+from utils import do_preparation_actions, set_hotkeys, get_active_window_title, make_acting_record, get_vk, \
+    check_is_window_changed
 from defaullts import ROOT_DIR
 
 
 move_counter = 1
-
-
-# ------ start time counter ------ #
-
-
-START_TIMER = time()
 
 
 # ------ keyboard listening functions ------ #
@@ -33,12 +26,11 @@ def on_press(key) -> NoReturn:
     # check has the window changed from last action and make record if True
     if get_vk(key) != 9:
         active_window_title = get_active_window_title()
-        check_is_window_changed(active_window_title, START_TIMER)
+        check_is_window_changed(active_window_title)
 
     # make record of action
     make_acting_record(
         controller="keyboard",
-        timestamp=get_timestamp(START_TIMER),
         action="press",
         config=dict(key=get_vk(key))
     )
@@ -51,12 +43,11 @@ def on_release(key) -> NoReturn:
 
     # check has the window changed from last action and make record if True
     active_window_title = get_active_window_title()
-    check_is_window_changed(active_window_title, START_TIMER)
+    check_is_window_changed(active_window_title)
 
     # make record of action
     make_acting_record(
         controller="keyboard",
-        timestamp=get_timestamp(START_TIMER),
         action="release",
         config=dict(key=get_vk(key))
     )
@@ -72,13 +63,12 @@ def on_move(x, y):
     global move_counter
 
     active_window_title = get_active_window_title()
-    check_is_window_changed(active_window_title, START_TIMER)
+    check_is_window_changed(active_window_title)
     print("on_move")
     # make record of action
     if move_counter % 10 == 0:
         make_acting_record(
             controller="mouse",
-            timestamp=get_timestamp(START_TIMER),
             action="move",
             config=dict(x=x, y=y)
         )
@@ -89,7 +79,7 @@ def on_click(x, y, button: Button, pressed) -> NoReturn:
     """catch mouse clicking and write in the log file"""
 
     active_window_title = get_active_window_title()
-    check_is_window_changed(active_window_title, START_TIMER)
+    check_is_window_changed(active_window_title)
 
     action = "press" if pressed else "release"
     print(f"on_click_{action}")
@@ -97,7 +87,6 @@ def on_click(x, y, button: Button, pressed) -> NoReturn:
 
     make_acting_record(
         controller="mouse",
-        timestamp=get_timestamp(START_TIMER),
         action=action,
         config=dict(x=x, y=y, button=str(button))
     )
@@ -108,11 +97,10 @@ def on_scroll(x: int, y: int, dx: int, dy: int) -> NoReturn:
 
     print("on_scroll")
     active_window_title = get_active_window_title()
-    check_is_window_changed(active_window_title, START_TIMER)
+    check_is_window_changed(active_window_title)
     # make record of action
     make_acting_record(
         controller="mouse",
-        timestamp=get_timestamp(START_TIMER),
         action="scroll",
         config=dict(x=x, y=y, dx=dx, dy=dy)
     )
@@ -154,7 +142,7 @@ def main():
     print('Start recording')
 
     try:
-        do_preparation_actions(START_TIMER)
+        do_preparation_actions()
 
         # create processes for listening both mouse and keyboard
         mouse_list_proc = Process(target=start_mouse_listener)
