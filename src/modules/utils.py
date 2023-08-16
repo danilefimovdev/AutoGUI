@@ -2,6 +2,7 @@ import ctypes
 import json
 import os
 import signal
+from datetime import datetime
 from time import time
 from typing import NoReturn, Optional
 
@@ -35,8 +36,9 @@ def get_active_window_title() -> Optional[str]:
         hwnd = ctypes.windll.user32.GetForegroundWindow()
         title = win32gui.GetWindowText(hwnd)
         return title
-    except Exception:
-        return None
+    except Exception as ex:
+        raise ex
+        # return None
 
 
 def activate_window(config: dict) -> NoReturn:
@@ -48,33 +50,39 @@ def activate_window(config: dict) -> NoReturn:
         win32gui.ShowWindow(hwnd, win32con.SHOW_FULLSCREEN)
         win32gui.SetForegroundWindow(hwnd)
     else:
-        raise Exception(f"There is no window with '{title}' title")
+        raise Exception(f"There is no window with '{title}' as title")
 
 
 def make_window_switching_record(active_window_title: str) -> NoReturn:
     """ check has the active window changed and make a record of window switching to json """
 
-    make_acting_record(
-        controller='special',
-        action="activate_window",
-        config=dict(
-            title=active_window_title
+    try:
+        make_acting_record(
+            controller='special',
+            action="activate_window",
+            config=dict(
+                title=active_window_title
+            )
         )
-    )
+    except Exception as ex:
+        raise ex
 
 
 def make_acting_record(controller: str, action: str, config: dict) -> NoReturn:
     """ make a record of action to json """
 
-    with open(f'{ROOT_DIR}/records/input_file.json', mode='a') as file:
-        data = dict(
-            controller=controller,
-            timestamp=get_timestamp(),
-            action=action,
-            config=config
-        )
-        json.dump(data, file)
-        file.write('\n')
+    try:
+        with open(f'{ROOT_DIR}/records/input_file.json', mode='a') as file:
+            data = dict(
+                controller=controller,
+                timestamp=get_timestamp(),
+                action=action,
+                config=config
+            )
+            json.dump(data, file)
+            file.write('\n')
+    except Exception as ex:
+        raise ex
 
 
 def check_is_window_changed(active_window_title: str) -> NoReturn:
@@ -91,8 +99,11 @@ def check_is_window_changed(active_window_title: str) -> NoReturn:
     if active_window_title not in ("Task Switching", "", "None", "Task View") and active_window_title is not None:
 
         # change last window name
-        with open(f'{ROOT_DIR}/used_in_recording_&_playing/active_window_name.txt', 'w') as file:
-            file.write(active_window_title)
+        try:
+            with open(f'{ROOT_DIR}/used_in_recording_&_playing/active_window_name.txt', 'w', encoding="utf-8") as file:
+                file.write(active_window_title)
+        except Exception as ex:
+            raise ex
 
         with open(f'{ROOT_DIR}/used_in_recording_&_playing/switch_window_hotkey.txt', 'r') as file:
             try:
@@ -100,28 +111,31 @@ def check_is_window_changed(active_window_title: str) -> NoReturn:
             except ValueError:
                 is_pressed = None
 
-        print(f"active_window != last_window: {active_window_title != last_window_title}; is_pressed: {is_pressed}; active_window: {active_window_title}; last_window: {last_window_title};")
-        print(f"active_window == switch_window: {active_window_title == switch_window_title}; is_pressed: {is_pressed}; active_window: {active_window_title}; switch_window: {switch_window_title};")
+        # print(f"active_window != last_window: {active_window_title != last_window_title}; is_pressed: {is_pressed}; active_window: {active_window_title}; last_window: {last_window_title};")
+        # print(f"active_window == switch_window: {active_window_title == switch_window_title}; is_pressed: {is_pressed}; active_window: {active_window_title}; switch_window: {switch_window_title};")
 
         first_condition = active_window_title != last_window_title
-        second_condition = all((active_window_title == switch_window_title, is_pressed, ))
+        second_condition = all((active_window_title == switch_window_title, is_pressed,))
         if is_pressed is not None:
             if first_condition or second_condition:
-                # check was one of window switch hotkey pressed
-                if is_pressed:
-                    # make switch window record
-                    make_window_switching_record(active_window_title)
+                try:
+                    # check was one of window switch hotkey pressed
+                    if is_pressed:
+                        # make switch window record
+                        make_window_switching_record(active_window_title)
 
-                    if second_condition:
-                        switch_window = ""
-                    else:  # first_condition
-                        switch_window = active_window_title
-                    with open(f'{ROOT_DIR}/used_in_recording_&_playing/switch_window_name.txt', 'w') as file:
-                        file.write(switch_window)
+                        if second_condition:
+                            switch_window = ""
+                        else:  # first_condition
+                            switch_window = active_window_title
+                        with open(f'{ROOT_DIR}/used_in_recording_&_playing/switch_window_name.txt', 'w', encoding="utf-8") as file:
+                            file.write(switch_window)
 
-                # change window switch hotkey pressed to false
-                with open(f'{ROOT_DIR}/used_in_recording_&_playing/switch_window_hotkey.txt', 'w') as file:
-                    file.write("0")
+                    # change window switch hotkey pressed to false
+                    with open(f'{ROOT_DIR}/used_in_recording_&_playing/switch_window_hotkey.txt', 'w') as file:
+                        file.write("0")
+                except Exception as ex:
+                    raise ex
 
 
 def get_keyboard_language() -> int:
@@ -233,3 +247,8 @@ def write_window_switch() -> NoReturn:
 
     with open(f'{ROOT_DIR}/used_in_recording_&_playing/switch_window_hotkey.txt', 'w') as file:
         file.write("1")
+
+
+def get_current_datetime() -> str:
+    current_datetime = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    return current_datetime

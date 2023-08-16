@@ -1,4 +1,5 @@
 import json
+import logging
 import sys
 from time import sleep
 from typing import NoReturn
@@ -8,11 +9,12 @@ from pynput.mouse import Controller as MouseController
 from pynput.keyboard import Controller as KeyboardController, KeyCode
 from win32api import GetKeyState
 
-from utils import activate_window, get_timestamp, stop_process, ask_user_for_a_record_name, get_keyboard_language
+from utils import activate_window, get_timestamp, stop_process, ask_user_for_a_record_name, get_keyboard_language, \
+    get_current_datetime
 from defaullts import ROOT_DIR, MOUSE_BUTTONS, LANGUAGES
 
 
-# ------ mouse actions ------ #
+# ------ mouse actions ------
 
 
 MOUSE = MouseController()
@@ -21,32 +23,44 @@ MOUSE = MouseController()
 def move_to(config: dict) -> NoReturn:
     """ change mouse position """
 
-    MOUSE.position = (config['x'], config['y'])
+    try:
+        MOUSE.position = (config['x'], config['y'])
+    except Exception as ex:
+        raise ex
 
 
 def press_mouse(config: dict) -> NoReturn:
     """ press mouse button """
 
-    if MOUSE.position != (config['x'], config['y']):
-        move_to(config)
-    MOUSE.press(MOUSE_BUTTONS[config['button']])
+    try:
+        if MOUSE.position != (config['x'], config['y']):
+            move_to(config)
+        MOUSE.press(MOUSE_BUTTONS[config['button']])
+    except Exception as ex:
+        raise ex
 
 
 def release_mouse(config: dict) -> NoReturn:
     """ release mouse button """
 
-    if MOUSE.position != (config['x'], config['y']):
-        move_to(config)
-    MOUSE.release(MOUSE_BUTTONS[config['button']])
+    try:
+        if MOUSE.position != (config['x'], config['y']):
+            move_to(config)
+        MOUSE.release(MOUSE_BUTTONS[config['button']])
+    except Exception as ex:
+        raise ex
 
 
 def scroll_mouse(config: dict) -> NoReturn:
     """ do mouse scroll """
 
-    if MOUSE.position != (config['x'], config['y']):
-        move_to(config)
-    dx = 0
-    MOUSE.scroll(dx, config['dy'])
+    try:
+        if MOUSE.position != (config['x'], config['y']):
+            move_to(config)
+        dx = 0
+        MOUSE.scroll(dx, config['dy'])
+    except Exception as ex:
+        raise ex
 
 
 MOUSE_ACTIONS = {
@@ -66,25 +80,35 @@ KEYBOARD = KeyboardController()
 def press_keyboard(config: dict) -> NoReturn:
     """ press keyboard key """
 
-    key_code = KeyCode.from_vk(config['key'])
-    KEYBOARD.press(key_code)
+    try:
+        key_code = KeyCode.from_vk(config['key'])
+        KEYBOARD.press(key_code)
+    except Exception as ex:
+        raise ex
 
 
 def release_keyboard(config: dict) -> NoReturn:
     """ release keyboard key """
 
-    key_code = KeyCode.from_vk(config['key'])
-    KEYBOARD.release(key_code)
+    try:
+        key_code = KeyCode.from_vk(config['key'])
+        KEYBOARD.release(key_code)
+    except Exception as ex:
+        raise ex
 
 
 def toggle_capslock(config: dict) -> NoReturn:
 
     caps_lock_vk = 20
-    is_caps_lock_toggled = GetKeyState(caps_lock_vk)
-    if is_caps_lock_toggled != config['is_toggled']:
-        key_code = KeyCode.from_vk(caps_lock_vk)
-        KEYBOARD.press(key_code)
-        KEYBOARD.release(key_code)
+
+    try:
+        is_caps_lock_toggled = GetKeyState(caps_lock_vk)
+        if is_caps_lock_toggled != config['is_toggled']:
+            key_code = KeyCode.from_vk(caps_lock_vk)
+            KEYBOARD.press(key_code)
+            KEYBOARD.release(key_code)
+    except Exception as ex:
+        raise ex
 
 
 KEYBOARD_ACTIONS = {
@@ -108,10 +132,13 @@ def switch_window(config: dict) -> NoReturn:
 
 def check_language(config: dict) -> NoReturn:
 
-    current_lang = get_keyboard_language()
-    lang_name = LANGUAGES[config['lang_id']]
-    if current_lang != config['lang_id']:
-        raise Exception(f'Wrong keyboard layout. Change it to "{lang_name}"')
+    try:
+        current_lang = get_keyboard_language()
+        lang_name = LANGUAGES[config['lang_id']]
+        if current_lang != config['lang_id']:
+            raise Exception(f'Wrong keyboard layout. Change it to "{lang_name}"')
+    except Exception as ex:
+        raise ex
 
 
 SPECIAL_ACTIONS = {
@@ -145,7 +172,6 @@ def main():
 
     try:
         with open(f'{ROOT_DIR}/records/{file_name}', mode='r') as file:
-            error_timestamp = None
 
             limit = (len(file.readlines()) - acts_to_ignore)
             file.seek(0)  # move reading cursor to the beginning of the file
@@ -155,7 +181,6 @@ def main():
                 # here we are waiting when action time would be equal or less than start script time
                 while item['timestamp'] > get_timestamp():
                     sleep(pause)
-                error_timestamp = item['timestamp']
                 # when the time is right we start the action
                 if item['controller'] == 'mouse':
                     MOUSE_ACTIONS[item['action']](item['config'])
@@ -163,9 +188,14 @@ def main():
                     KEYBOARD_ACTIONS[item['action']](item['config'])
                 else:  # special (language change, window switch)
                     SPECIAL_ACTIONS[item['action']](item['config'])
-            print(f'Finished playing {file_name}')
+        print(f'Finished playing {file_name}')
     except Exception as ex:
-        print(f"Timestamp: {error_timestamp} s. - Error: {ex} - File: {file_name}")
+
+        logging.basicConfig(level=logging.INFO, filename=f'{ROOT_DIR}/logs/{get_current_datetime()}_play_error.log', filemode="w")
+        logging.info(msg=item)
+        logging.error(ex, exc_info=True)
+
+        print(f" Error has occurred. Check {get_current_datetime()}_play_error.log for detail info ! ")
     finally:
         sys.exit()
 
