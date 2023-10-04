@@ -4,7 +4,7 @@ import os
 import signal
 from datetime import datetime
 from time import time
-from typing import NoReturn, Optional
+from typing import Optional
 
 import keyboard
 import win32con
@@ -41,7 +41,7 @@ def get_active_window_title() -> Optional[str]:
         # return None
 
 
-def activate_window(config: dict) -> NoReturn:
+def activate_window(config: dict) -> None:
     """ activate window with passed window title if exists """
 
     title = config["title"]
@@ -53,7 +53,7 @@ def activate_window(config: dict) -> NoReturn:
         raise Exception(f"There is no window with '{title}' as title")
 
 
-def make_window_switching_record(active_window_title: str) -> NoReturn:
+def make_window_switching_record(active_window_title: str) -> None:
     """ check has the active window changed and make a record of window switching to json """
 
     try:
@@ -68,7 +68,7 @@ def make_window_switching_record(active_window_title: str) -> NoReturn:
         raise ex
 
 
-def make_acting_record(controller: str, action: str, config: dict) -> NoReturn:
+def make_acting_record(controller: str, action: str, config: dict) -> None:
     """ make a record of action to json """
 
     try:
@@ -85,7 +85,7 @@ def make_acting_record(controller: str, action: str, config: dict) -> NoReturn:
         raise ex
 
 
-def check_is_window_changed(active_window_title: str) -> NoReturn:
+def check_is_window_changed(active_window_title: str) -> None:
     """ check was active window changed and make an action record if It was """
 
     # get last window name from active_window_name.txt file
@@ -150,7 +150,7 @@ def get_keyboard_language() -> int:
     return language_id
 
 
-def stop_process() -> NoReturn:
+def stop_process() -> None:
     """Catch expected hotkey and terminate started process"""
 
     os.kill(os.getpid(), signal.SIGTERM)
@@ -170,7 +170,7 @@ def ask_user_for_a_record_name() -> str:
     return file_name
 
 
-def _clean_temporary_files() -> NoReturn:
+def _clean_temporary_files() -> None:
     """ clean temporary files using in recording """
 
     with open(f'{ROOT_DIR}/records/input_file.json', 'w'):
@@ -183,7 +183,7 @@ def _clean_temporary_files() -> NoReturn:
         file.write("")
 
 
-def _write_capslock_state() -> NoReturn:
+def _write_capslock_state() -> None:
     """ write was capslock toggled at the start of the recording """
 
     caps_lock_vk = 20
@@ -197,7 +197,7 @@ def _write_capslock_state() -> NoReturn:
     )
 
 
-def _write_start_language() -> NoReturn:
+def _write_start_language() -> None:
     """ write was capslock toggled at the start of the recording """
 
     make_acting_record(
@@ -207,7 +207,7 @@ def _write_start_language() -> NoReturn:
     )
 
 
-def _write_start_window() -> NoReturn:
+def _write_start_window_as_action() -> None:
     """ write active window at the start of the recording """
 
     make_acting_record(
@@ -217,13 +217,23 @@ def _write_start_window() -> NoReturn:
     )
 
 
-def do_preparation_actions() -> NoReturn:
+def _write_opened_at_start_windows() -> None:
+    """ write set of opened windows at the start of recording"""
+
+    with open(f'{ROOT_DIR}/used_in_recording_&_playing/open_windows_at_start.json', 'w', encoding='utf-8') as file:
+        windows = get_open_windows()
+        data = {"windows": list(windows)}
+        json.dump(data, file)
+
+
+def do_preparation_actions() -> None:
     """ do all required actions before starting a new record """
 
     _clean_temporary_files()
     _write_capslock_state()
     _write_start_language()
-    _write_start_window()
+    _write_start_window_as_action()
+    _write_opened_at_start_windows()
 
 
 def set_hotkeys(window_switch: bool = False, stop_recording: bool = False, stop_playing: bool = False):
@@ -243,7 +253,7 @@ def set_hotkeys(window_switch: bool = False, stop_recording: bool = False, stop_
                 keyboard.add_hotkey(hotkey, stop_process)
 
 
-def write_window_switch() -> NoReturn:
+def write_window_switch() -> None:
 
     with open(f'{ROOT_DIR}/used_in_recording_&_playing/switch_window_hotkey.txt', 'w') as file:
         file.write("1")
@@ -252,3 +262,59 @@ def write_window_switch() -> NoReturn:
 def get_current_datetime() -> str:
     current_datetime = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     return current_datetime
+
+
+def get_open_windows() -> set:
+    """get set of all opened windows titles"""
+
+    windows = set()
+
+    def is_visible(hwnd, extra):
+        if win32gui.IsWindowVisible(hwnd):
+            window = win32gui.GetWindowText(hwnd)
+            if window:  # here we escape None title windows
+                windows.add(window)
+
+    win32gui.EnumWindows(is_visible, None)
+
+    return windows
+
+
+def get_windows_to_switch_from_log() -> set:
+
+    windows = set()
+
+    with open(f'{ROOT_DIR}/records/input_file.json', 'r') as file:
+        for line in file.readlines():
+            item = json.loads(line)
+            if item['action'] == "activate_window":
+                windows.add(item["config"]["title"])
+
+    return windows
+
+
+def get_required_to_be_opened_at_start_windows() -> list:
+
+    windows_to_switch = get_windows_to_switch_from_log()
+    with open(f'{ROOT_DIR}/used_in_recording_&_playing/open_windows_at_start.json', 'r', encoding="utf-8") as file:
+        windows_at_start = set(json.loads(file.readline())['windows'])
+    required_windows = windows_at_start.intersection(windows_to_switch)
+    return list(required_windows)
+
+
+def write_required_windows_in_log(required_windows: list) -> None:
+
+    with open(f'{ROOT_DIR}/records/input_file.json', 'r+', encoding='utf-8') as file:
+        data = file.read()
+        file.seek(0)
+        config = {'windows': required_windows}
+        note = dict(
+            controller="special",
+            timestamp=0.0,
+            action="check_are_required_windows_opened",
+            config=config
+        )
+        str_data = json.dumps(note)
+
+        file.write(f'{str_data}\n' + data)
+

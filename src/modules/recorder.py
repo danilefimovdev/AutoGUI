@@ -1,12 +1,12 @@
 import os
 import sys
 from multiprocessing import Process
-from typing import NoReturn
 from pynput import keyboard as keyboard_, mouse
 from pynput.mouse import Button
 
 from utils import do_preparation_actions, set_hotkeys, get_active_window_title, make_acting_record, get_vk, \
-    check_is_window_changed, get_current_datetime
+    check_is_window_changed, get_current_datetime, get_windows_to_switch_from_log, \
+    get_required_to_be_opened_at_start_windows, write_required_windows_in_log
 from defaullts import ROOT_DIR
 import logging
 
@@ -17,7 +17,7 @@ move_counter = 1
 # ------ keyboard listening functions ------ #
 
 
-def on_press(key) -> NoReturn:
+def on_press(key) -> None:
     """catch keyboard's key pressing and write in the log file"""
 
     # print("on_press")
@@ -40,7 +40,7 @@ def on_press(key) -> NoReturn:
         raise Exception(ex)
 
 
-def on_release(key) -> NoReturn:
+def on_release(key) -> None:
     """catch keyboard's key releasing and write in the log file"""
 
     # print("on_release")
@@ -81,7 +81,7 @@ def on_move(x, y):
         raise Exception(ex)
 
 
-def on_click(x, y, button: Button, pressed) -> NoReturn:
+def on_click(x, y, button: Button, pressed) -> None:
     """catch mouse clicking and write in the log file"""
 
     action = "press" if pressed else "release"
@@ -102,7 +102,7 @@ def on_click(x, y, button: Button, pressed) -> NoReturn:
         raise Exception(ex)
 
 
-def on_scroll(x: int, y: int, dx: int, dy: int) -> NoReturn:
+def on_scroll(x: int, y: int, dx: int, dy: int) -> None:
     """catch mouse scrolling and write in the log file"""
 
     # print("on_scroll")
@@ -174,8 +174,12 @@ def main():
     except Exception as ex:
         logging.basicConfig(level=logging.INFO, filename=f'{ROOT_DIR}/logs/{get_current_datetime()}_record_error.log', filemode="w")
         logging.error(ex, exc_info=True)
-        print(f" Error has occurred. Check {get_current_datetime()}_record_error.log for detail info ! ")
+        # print(f" Error has occurred. Check {get_current_datetime()}_record_error.log for detail info ! ")
+        print(ex)
     finally:
+        required_windows = get_required_to_be_opened_at_start_windows()
+        write_required_windows_in_log(required_windows)
+
         # set start listening time as a file name
         record_name = f'{current_datetime}.json'
         os.rename(f'{ROOT_DIR}/records/input_file.json', f"{ROOT_DIR}/records/{record_name}")

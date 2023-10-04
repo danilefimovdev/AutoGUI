@@ -2,7 +2,6 @@ import json
 import logging
 import sys
 from time import sleep
-from typing import NoReturn
 
 import keyboard
 from pynput.mouse import Controller as MouseController
@@ -10,7 +9,7 @@ from pynput.keyboard import Controller as KeyboardController, KeyCode
 from win32api import GetKeyState
 
 from utils import activate_window, get_timestamp, stop_process, ask_user_for_a_record_name, get_keyboard_language, \
-    get_current_datetime
+    get_current_datetime, get_open_windows
 from defaullts import ROOT_DIR, MOUSE_BUTTONS, LANGUAGES
 
 
@@ -20,7 +19,7 @@ from defaullts import ROOT_DIR, MOUSE_BUTTONS, LANGUAGES
 MOUSE = MouseController()
 
 
-def move_to(config: dict) -> NoReturn:
+def move_to(config: dict) -> None:
     """ change mouse position """
 
     try:
@@ -29,7 +28,7 @@ def move_to(config: dict) -> NoReturn:
         raise ex
 
 
-def press_mouse(config: dict) -> NoReturn:
+def press_mouse(config: dict) -> None:
     """ press mouse button """
 
     try:
@@ -40,7 +39,7 @@ def press_mouse(config: dict) -> NoReturn:
         raise ex
 
 
-def release_mouse(config: dict) -> NoReturn:
+def release_mouse(config: dict) -> None:
     """ release mouse button """
 
     try:
@@ -51,7 +50,7 @@ def release_mouse(config: dict) -> NoReturn:
         raise ex
 
 
-def scroll_mouse(config: dict) -> NoReturn:
+def scroll_mouse(config: dict) -> None:
     """ do mouse scroll """
 
     try:
@@ -77,7 +76,7 @@ MOUSE_ACTIONS = {
 KEYBOARD = KeyboardController()
 
 
-def press_keyboard(config: dict) -> NoReturn:
+def press_keyboard(config: dict) -> None:
     """ press keyboard key """
 
     try:
@@ -87,7 +86,7 @@ def press_keyboard(config: dict) -> NoReturn:
         raise ex
 
 
-def release_keyboard(config: dict) -> NoReturn:
+def release_keyboard(config: dict) -> None:
     """ release keyboard key """
 
     try:
@@ -97,7 +96,7 @@ def release_keyboard(config: dict) -> NoReturn:
         raise ex
 
 
-def toggle_capslock(config: dict) -> NoReturn:
+def toggle_capslock(config: dict) -> None:
 
     caps_lock_vk = 20
 
@@ -121,7 +120,7 @@ KEYBOARD_ACTIONS = {
 # ------ special actions ------ #
 
 
-def switch_window(config: dict) -> NoReturn:
+def switch_window(config: dict) -> None:
     """ switch to the window with passed title if the window exists """
 
     try:
@@ -130,7 +129,22 @@ def switch_window(config: dict) -> NoReturn:
         raise ex
 
 
-def check_language(config: dict) -> NoReturn:
+def check_are_required_windows_opened(config: dict) -> None:
+    """check if all required for playing log windows are opened"""
+
+    current_opened_windows_title = get_open_windows()
+    required_windows_to_be_opened = set(config['windows'])
+    if not required_windows_to_be_opened.issubset(current_opened_windows_title):
+        windows_to_open = required_windows_to_be_opened.difference(current_opened_windows_title)
+        window_titles = []
+        for title in windows_to_open:
+            window_titles.append(str(title))
+            # window_titles.append(unicode(someString, 'utf-8', errors='ignore'))
+        print('window_titles', window_titles)
+        raise Exception(f'Next windows must be opened to start play log: {window_titles}')
+
+
+def check_language(config: dict) -> None:
 
     try:
         current_lang = get_keyboard_language()
@@ -143,7 +157,8 @@ def check_language(config: dict) -> NoReturn:
 
 SPECIAL_ACTIONS = {
     'check_language': check_language,
-    'activate_window': activate_window
+    'activate_window': activate_window,
+    'check_are_required_windows_opened': check_are_required_windows_opened,
 }
 
 
@@ -193,9 +208,10 @@ def main():
 
         logging.basicConfig(level=logging.INFO, filename=f'{ROOT_DIR}/logs/{get_current_datetime()}_play_error.log', filemode="w")
         logging.info(msg=item)
-        logging.error(ex, exc_info=True)
+        logging.error(str(ex), exc_info=True)
 
-        print(f" Error has occurred. Check {get_current_datetime()}_play_error.log for detail info ! ")
+        # print(f" Error has occurred. Check {get_current_datetime()}_play_error.log for detail info ! ")
+        print(ex)
     finally:
         sys.exit()
 
@@ -205,5 +221,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
