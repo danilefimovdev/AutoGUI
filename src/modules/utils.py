@@ -316,5 +316,5 @@ def write_required_windows_in_log(required_windows: list) -> None:
         )
         str_data = json.dumps(note)
 
-        file.write(f'{str_data}\n' + data)
+        file.write(f'{str_data}\n' + data )
 

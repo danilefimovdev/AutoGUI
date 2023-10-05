@@ -188,11 +188,10 @@ def main():
     try:
         with open(f'{ROOT_DIR}/records/{file_name}', mode='r') as file:
 
-            limit = (len(file.readlines()) - acts_to_ignore)
-            file.seek(0)  # move reading cursor to the beginning of the file
-            for line in file.readlines()[0:limit]:
-                item = json.loads(line)
+            actions_array = json.load(file)
+            limit = (len(actions_array) - acts_to_ignore)
 
+            for item in actions_array[0:limit]:
                 # here we are waiting when action time would be equal or less than start script time
                 while item['timestamp'] > get_timestamp():
                     sleep(pause)

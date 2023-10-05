@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 from multiprocessing import Process
@@ -5,8 +6,8 @@ from pynput import keyboard as keyboard_, mouse
 from pynput.mouse import Button
 
 from utils import do_preparation_actions, set_hotkeys, get_active_window_title, make_acting_record, get_vk, \
-    check_is_window_changed, get_current_datetime, get_windows_to_switch_from_log, \
-    get_required_to_be_opened_at_start_windows, write_required_windows_in_log
+    check_is_window_changed, get_current_datetime, get_required_to_be_opened_at_start_windows, \
+    write_required_windows_in_log
 from defaullts import ROOT_DIR
 import logging
 
@@ -179,6 +180,14 @@ def main():
     finally:
         required_windows = get_required_to_be_opened_at_start_windows()
         write_required_windows_in_log(required_windows)
+
+        with open(f'{ROOT_DIR}/records/input_file.json', 'r') as read_file:
+            array = list()
+            for line in read_file.readlines():
+                a = json.loads(line)
+                array.append(a)
+            with open(f'{ROOT_DIR}/records/input_file.json', 'w') as write_file:
+                json.dump(array, write_file)
 
         # set start listening time as a file name
         record_name = f'{current_datetime}.json'
